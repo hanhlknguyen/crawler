@@ -19,8 +19,10 @@ visited_patterns = {}
 
 def scraper(url, resp):
     global visited_urls
+    # Skip already visited URLs
     if url in visited_urls:
         return []
+    # Skip URLs detected as traps
     if detect_trap(url):
         print(f"Trap detected for URL {url}, skipping...")
         return []
@@ -29,6 +31,8 @@ def scraper(url, resp):
     record_longest_page(url, word_count)
     process_subdomain(url)
 
+    # Save the information about the longest page and subdomains
+    save_longest_page()
     save_longest_page()
     save_subdomain_info()
 
@@ -36,6 +40,16 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    """
+    Extracts links from the content of a given URL.
+
+    Args:
+        url (str): The URL of the page from which links are to be extracted.
+        resp (Response): The response object containing the URL content.
+
+    Returns:
+        list: List of valid absolute URLs extracted from the page content.
+    """
     if resp.status != 200 or not resp.raw_response:
         return[]
     
@@ -51,6 +65,15 @@ def extract_next_links(url, resp):
     return links
 
 def is_valid(url):
+    """
+    Checks whether a given URL is valid for further processing.
+
+    Args:
+        url (str): The URL to be validated.
+
+    Returns:
+        bool: True if the URL is valid, False otherwise.
+    """
     try:
         parsed = urlparse(url)
         url = parsed._replace(fragment="").geturl()
@@ -69,12 +92,28 @@ def is_valid(url):
         raise
 
 def count_words(html_content):
+    """
+    Counts the number of words in the HTML content.
+
+    Args:
+        html_content (bytes): The HTML content of a page.
+
+    Returns:
+        int: The count of words in the content.
+    """
     soup = BeautifulSoup(html_content, 'html.parser')
     text = soup.get_text()
     words = re.findall(r'\b\w+\b', text.lower())
     return len(words)
 
 def record_longest_page(url, word_count):
+    """
+    Records the information about the longest page encountered.
+
+    Args:
+        url (str): The URL of the page.
+        word_count (int): The count of words in the page content.
+    """
     global longest_page_url, longest_page_word_count
     if word_count > longest_page_word_count:
         longest_page_word_count = word_count
@@ -102,16 +141,33 @@ def save_subdomain_info():
 
 
 def normalize_url(url):
+    """
+    Normalizes a URL by excluding fragments and query parameters.
+
+    Args:
+        url (str): The URL to be normalized.
+
+    Returns:
+        str: The normalized URL.
+    """
     parsed = urlparse(url)
     # Normalize to exclude URL fragments and query parameters
     normalized = parsed._replace(query="", fragment="").geturl()
     return normalized
 
 def get_url_pattern(url):
+    """
+    Extracts a URL pattern by replacing digits with a placeholder.
+
+    Args:
+        url (str): The URL from which the pattern is to be extracted.
+
+    Returns:
+        str: The URL pattern.
+    """
     parsed = urlparse(url)
-    # You might focus on path or parameters known to cause issues
     path = parsed.path
-    return re.sub(r'\d+', '[digit]', path)  # Replace digits with a placeholder to detect patterns
+    return re.sub(r'\d+', '[digit]', path)
 
 
 def detect_trap(url):
@@ -122,6 +178,6 @@ def detect_trap(url):
         visited_patterns[pattern] = 1
 
     # Detect a trap if a pattern is visited too frequently
-    if visited_patterns[pattern] > 10:  # Threshold can be adjusted
+    if visited_patterns[pattern] > 10:
         return True
     return False
