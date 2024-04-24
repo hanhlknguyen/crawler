@@ -44,6 +44,9 @@ def scraper(url, resp):
     if detect_trap(url):
         print(f"Trap detected for URL {url}, skipping...")
         return []
+    if is_dead_url(resp) or not has_high_information_content(resp):
+        print(f"No information for URL {url}, skipping...")
+        return []
     visited_urls.add(url)
     word_count = count_words(resp.raw_response.content)
     record_longest_page(url, word_count)
@@ -200,7 +203,6 @@ def detect_trap(url):
         return True
     return False
 
-
 # def find_most_common_words(url, number_of_words=50):
 #     """
 #     Fetches the URL content, processes the content to find the most common words.
@@ -219,3 +221,51 @@ def detect_trap(url):
 #         return most_common
 #     else:
 #         return []
+
+def is_dead_url(resp):
+    """
+    Checks if the URL is a dead URL (returns a 200 status but no data).
+
+    Args:
+        resp (Response): The response object containing the URL content.
+
+    Returns:
+        bool: True if the URL is a dead URL, False otherwise.
+    """
+    # Check if the response status is 200
+    if resp.status == 200:
+        # Check if the response contains content
+        if resp.raw_response:
+            # Check if the content length is zero
+            if len(resp.raw_response.content) == 0:
+                return True  # Dead URL
+        else:
+            return True  # Dead URL
+    return False  # Not a dead URL
+
+def has_high_information_content(resp):
+    """
+    Checks if the page contains significant textual information.
+
+    Args:
+        resp (Response): The response object containing the URL content.
+
+    Returns:
+        bool: True if the page contains significant textual information, False otherwise.
+    """
+    # Ensure that the response contains content
+    if not resp.raw_response:
+        return False
+
+    # Extract text content from the HTML
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    text = soup.get_text()
+
+    # Count the number of words
+    words = re.findall(r'\b\w+\b', text.lower())
+    word_count = len(words)
+
+    if word_count < 100:
+        return False
+    else:
+        return True
