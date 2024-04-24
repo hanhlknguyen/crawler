@@ -14,11 +14,15 @@ longest_page_url = ''
 longest_page_word_count = 0
 common_words_counter = Counter()
 subdomain_pages = {}
+visited_patterns = {}
 
 
 def scraper(url, resp):
     global visited_urls
     if url in visited_urls:
+        return []
+    if detect_trap(url):
+        print(f"Trap detected for URL {url}, skipping...")
         return []
     visited_urls.add(url)
     word_count = count_words(resp.raw_response.content)
@@ -96,3 +100,28 @@ def save_subdomain_info():
         for subdomain, urls in subdomain_pages.items():
             file.write(f"{subdomain}: {len(urls)} pages\n")
 
+
+def normalize_url(url):
+    parsed = urlparse(url)
+    # Normalize to exclude URL fragments and query parameters
+    normalized = parsed._replace(query="", fragment="").geturl()
+    return normalized
+
+def get_url_pattern(url):
+    parsed = urlparse(url)
+    # You might focus on path or parameters known to cause issues
+    path = parsed.path
+    return re.sub(r'\d+', '[digit]', path)  # Replace digits with a placeholder to detect patterns
+
+
+def detect_trap(url):
+    pattern = get_url_pattern(normalize_url(url))
+    if pattern in visited_patterns:
+        visited_patterns[pattern] += 1
+    else:
+        visited_patterns[pattern] = 1
+
+    # Detect a trap if a pattern is visited too frequently
+    if visited_patterns[pattern] > 10:  # Threshold can be adjusted
+        return True
+    return False
