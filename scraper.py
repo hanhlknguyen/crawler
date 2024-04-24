@@ -9,6 +9,24 @@ EXCLUDED_EXTENSIONS = [
     '.wmv'
 ]
 
+STOP_WORDS = {
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", 
+    "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", 
+    "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", 
+    "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", 
+    "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", 
+    "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", 
+    "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself", "no", "nor", 
+    "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours", "ourselves", "out", 
+    "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", 
+    "such", "than", "that", "that's", "the", "their", "theirs", "them", "themselves", "then", "there", 
+    "there's", "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through", "to", 
+    "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", 
+    "weren't", "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", 
+    "whom", "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", 
+    "your", "yours", "yourself", "yourselves"
+}
+
 visited_urls = set()
 longest_page_url = ''
 longest_page_word_count = 0
@@ -171,3 +189,83 @@ def get_url_pattern(url):
     parsed = urlparse(url)
     path = parsed.path
     return re.sub(r'\d+', '[digit]', path)
+
+
+def detect_trap(url):
+    pattern = get_url_pattern(normalize_url(url))
+    if pattern in visited_patterns:
+        visited_patterns[pattern] += 1
+    else:
+        visited_patterns[pattern] = 1
+
+    # Detect a trap if a pattern is visited too frequently
+    if visited_patterns[pattern] > 10:
+        return True
+    return False
+
+# def find_most_common_words(url, number_of_words=50):
+#     """
+#     Fetches the URL content, processes the content to find the most common words.
+
+#     Args:
+#         url (str): The URL of the page.
+#         number_of_words (int): The number of top common words to return.
+
+#     Returns:
+#         list: List of tuples with the most common words and their counts.
+#     """
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         word_counts = count_words(response.content)
+#         most_common = word_counts.most_common(number_of_words)
+#         return most_common
+#     else:
+#         return []
+
+def is_dead_url(resp):
+    """
+    Checks if the URL is a dead URL (returns a 200 status but no data).
+
+    Args:
+        resp (Response): The response object containing the URL content.
+
+    Returns:
+        bool: True if the URL is a dead URL, False otherwise.
+    """
+    # Check if the response status is 200
+    if resp.status == 200:
+        # Check if the response contains content
+        if resp.raw_response:
+            # Check if the content length is zero
+            if len(resp.raw_response.content) == 0:
+                return True  # Dead URL
+        else:
+            return True  # Dead URL
+    return False  # Not a dead URL
+
+def has_high_information_content(resp):
+    """
+    Checks if the page contains significant textual information.
+
+    Args:
+        resp (Response): The response object containing the URL content.
+
+    Returns:
+        bool: True if the page contains significant textual information, False otherwise.
+    """
+    # Ensure that the response contains content
+    if not resp.raw_response:
+        return False
+
+    # Extract text content from the HTML
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    text = soup.get_text()
+
+    # Count the number of words
+    words = re.findall(r'\b\w+\b', text.lower())
+    word_count = len(words)
+
+    if word_count < 100:
+        return False
+    else:
+        return True
