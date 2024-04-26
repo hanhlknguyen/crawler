@@ -2,6 +2,7 @@ import re
 from collections import Counter
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
+import hashlib
 
 EXCLUDED_EXTENSIONS = [
     '.css', '.js', '.bmp', '.gif', '.jpe', '.jpeg', '.jpg', '.ico', '.png', '.tif', '.tiff', '.pdf',
@@ -33,6 +34,7 @@ longest_page_word_count = 0
 common_words_counter = Counter()
 subdomain_pages = {}
 visited_patterns = {}
+visited_hashes = set()
 
 
 def scraper(url, resp):
@@ -40,24 +42,27 @@ def scraper(url, resp):
     # Skip already visited URLs
     if url in visited_urls:
         return []
-    # Skip URLs detected as traps
-    if detect_trap(url):
-        print(f"Trap detected for URL {url}, skipping...")
+    
+    if detect_trap(url) or is_dead_url(resp) or not has_high_information_content(resp):
+        print(f"No information or trap detected for URL {url}, skipping...")
         return []
-    if is_dead_url(resp) or not has_high_information_content(resp):
-        print(f"No information for URL {url}, skipping...")
+    
+    final_url = handle_redirects(resp)
+    visited_urls.add(final_url)
+
+    if detect_similar_content(final_url, resp.raw_response.content):
         return []
-    visited_urls.add(url)
+    
     word_count = count_words(resp.raw_response.content)
-    record_longest_page(url, word_count)
-    process_subdomain(url)
+    record_longest_page(final_url, word_count)
+    process_subdomain(final_url)
 
     # Save the information about the longest page and subdomains
     save_longest_page()
     save_longest_page()
     save_subdomain_info()
 
-    links = extract_next_links(url, resp)
+    links = extract_next_links(final_url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
@@ -269,3 +274,55 @@ def has_high_information_content(resp):
         return False
     else:
         return True
+    
+
+def handle_redirects(resp):
+    """
+    Handles HTTP redirects by returning the final URL after all redirects.
+
+    Args:
+        resp (Response): The response object from the HTTP request.
+
+    Returns:
+        str: The final URL after following all redirects.
+    """
+    if 300 <= resp.status < 400:
+        redirected_url = resp.headers.get('Location', '')
+        if redirected_url:
+            return urljoin(resp.url, redirected_url)
+    return resp.url
+
+def get_content_hash(html_content):
+    """
+    Generates a hash for the textual content of a web page.
+
+    Args:
+        html_content (bytes): The HTML content of a page.
+
+    Returns:
+        str: A hash of the text content.
+    """
+    soup = BeautifulSoup(html_content, 'html.parser')
+    text = soup.get_text()
+    # Normalize whitespace and lower the case for uniformity
+    normalized_text = re.sub(r'\s+', ' ', text).strip().lower()
+    return hashlib.md5(normalized_text.encode('utf-8')).hexdigest()
+
+def detect_similar_content(url, html_content):
+    """
+    Detects if the given page content is similar to any previously encountered page.
+
+    Args:
+        url (str): The URL of the page being checked.
+        html_content (bytes): The HTML content of the page.
+
+    Returns:
+        bool: True if similar content is detected, otherwise False.
+    """
+    content_hash = get_content_hash(html_content)
+    if content_hash in visited_hashes:
+        print(f"Similar content detected for URL {url}, skipping...")
+        return True
+    else:
+        visited_hashes.add(content_hash)
+        return False
