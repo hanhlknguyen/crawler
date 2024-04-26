@@ -28,16 +28,16 @@ class Worker(Thread):
             domain = urlparse(tbd_url).netloc
             self.respect_politeness(domain)
             resp = download(tbd_url, self.config, self.logger)
-            if 600 <= resp.status < 700:
-                self.logger.warning(f"Received cache-specific status {resp.status} for URL {tbd_url}")
-                continue  # Skip processing for cache-specific errors
-            self.logger.info(
+            if resp and resp.status == 200:
+                self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
-            scraped_urls = scraper.scraper(tbd_url, resp)
-            for scraped_url in scraped_urls:
-                self.frontier.add_url(scraped_url)
-            self.frontier.mark_url_complete(tbd_url)
+                scraped_urls = scraper.scraper(tbd_url, resp)
+                for scraped_url in scraped_urls:
+                    self.frontier.add_url(scraped_url)
+                self.frontier.mark_url_complete(tbd_url)
+            else:
+                self.logger.error(f"Failed to download or process URL {tbd_url}, status might be <{getattr(resp, 'status', 'None')}>.")
             time.sleep(self.config.time_delay)
         
     def respect_politeness(self, domain):
