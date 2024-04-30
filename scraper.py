@@ -56,6 +56,7 @@ def scraper(url, resp):
     word_count = count_words(resp.raw_response.content)
     record_longest_page(final_url, word_count)
     process_subdomain(final_url)
+    find_most_common_words(resp)
 
 
     # Save the information about the longest page and subdomains
