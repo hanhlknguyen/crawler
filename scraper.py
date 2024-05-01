@@ -56,10 +56,13 @@ def scraper(url, resp):
     word_count = count_words(resp.raw_response.content)
     record_longest_page(final_url, word_count)
     process_subdomain(final_url)
-    find_most_common_words(resp)
+    if resp.status == 200 and resp.raw_response and resp.raw_response.content:
+        find_most_common_words(resp.raw_response.content)
+    # find_most_common_words(resp)
 
 
     # Save the information about the longest page and subdomains
+    save_most_common_words()
     save_longest_page()
     save_longest_page()
     save_subdomain_info()
@@ -210,25 +213,34 @@ def detect_trap(url):
         return True
     return False
 
-def find_most_common_words(resp, number_of_words=50):
+# def find_most_common_words(resp, number_of_words=50):
+    # """
+    # Processes the HTML content of a response object to find and save the most common words to a file.
+
+    # Args:
+    #     resp (Response): The response object containing the HTML content.
+    #     number_of_words (int): The number of top common words to save.
+    # """
+    # if resp.status == 200 and resp.raw_response and resp.raw_response.content:
+    #     word_counts = count_words_in_content(resp.raw_response.content)
+    #     most_common_words = word_counts.most_common(number_of_words)
+
+    #     with open('common_words.txt', 'w') as file:
+    #         file.write("Most Common Words:\n")
+    #         for word, count in most_common_words:
+    #             file.write(f"{word}: {count}\n")
+    # else:
+    #     with open('common_words.txt', 'w') as file:
+    #         file.write("Failed to retrieve or process content.")
+def find_most_common_words(html_content):
     """
-    Processes the HTML content of a response object to find and save the most common words to a file.
+    Updates the global common_words_counter with words from the HTML content.
 
     Args:
-        resp (Response): The response object containing the HTML content.
-        number_of_words (int): The number of top common words to save.
+        html_content (bytes): The HTML content of a page.
     """
-    if resp.status == 200 and resp.raw_response and resp.raw_response.content:
-        word_counts = count_words_in_content(resp.raw_response.content)
-        most_common_words = word_counts.most_common(number_of_words)
-
-        with open('common_words.txt', 'w') as file:
-            file.write("Most Common Words:\n")
-            for word, count in most_common_words:
-                file.write(f"{word}: {count}\n")
-    else:
-        with open('common_words.txt', 'w') as file:
-            file.write("Failed to retrieve or process content.")
+    word_counts = count_words_in_content(html_content)
+    common_words_counter.update(word_counts)
 
 def count_words_in_content(html_content):
     """
@@ -245,6 +257,13 @@ def count_words_in_content(html_content):
     words = re.findall(r'\b\w+\b', text.lower())
     filtered_words = [word for word in words if word not in STOP_WORDS]
     return Counter(filtered_words)
+
+def save_most_common_words():
+    with open('common_words.txt', 'w') as file:
+        file.write("Most Common Words:\n")
+        for word, count in common_words_counter.most_common(50):
+            file.write(f"{word}: {count}\n")
+
 
 def is_dead_url(resp):
     """
