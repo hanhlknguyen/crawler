@@ -59,7 +59,6 @@ def scraper(url, resp):
 
     # Save the information about the longest page and subdomains
     save_longest_page()
-    save_longest_page()
     save_subdomain_info()
 
     links = extract_next_links(final_url, resp)
@@ -163,7 +162,13 @@ def save_longest_page():
 def save_subdomain_info():
     with open('subdomains.txt', 'w') as file:
         for subdomain, urls in subdomain_pages.items():
-            file.write(f"{subdomain}: {len(urls)} pages\n")
+            example_url = next(iter(urls))
+            parsed_url = urlparse(example_url)
+            scheme = parsed_url.scheme
+            netloc = parsed_url.netloc
+
+            formatted_subdomain = f"{scheme}://{netloc}"
+            file.write(f"{formatted_subdomain}, {len(urls)}\n")
 
 
 def normalize_url(url):

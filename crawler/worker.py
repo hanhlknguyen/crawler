@@ -4,7 +4,7 @@ from inspect import getsource
 from utils.download import download
 from utils import get_logger
 import scraper
-import time
+import time, random
 
 
 class Worker(Thread):
@@ -13,6 +13,8 @@ class Worker(Thread):
         self.config = config
         self.frontier = frontier
         self.last_request_time = {}
+        self.backoff_time = 1
+        self.max_backoff_time = 30
         # basic check for requests in scraper
         assert {getsource(scraper).find(req) for req in {"from requests import", "import requests"}} == {-1}, "Do not use requests in scraper.py"
         assert {getsource(scraper).find(req) for req in {"from urllib.request import", "import urllib.request"}} == {-1}, "Do not use urllib.request in scraper.py"
@@ -28,7 +30,14 @@ class Worker(Thread):
             domain = urlparse(tbd_url).netloc
             self.respect_politeness(domain)
             resp = download(tbd_url, self.config, self.logger)
-            if resp and resp.status == 200:
+            if resp:
+                if 600 <= resp.status < 700:
+                    self.logger.warning(f"Cache-specific error received: {resp.status} for URL {tbd_url}")
+                    self.perform_backoff()  # Perform backoff when a cache-specific error occurs
+                    continue
+
+                self.backoff_time = 1
+
                 self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
@@ -47,3 +56,9 @@ class Worker(Thread):
             if elapsed_time < self.config.time_delay:
                 time.sleep(self.config.time_delay - elapsed_time)
         self.last_request_time[domain] = time.time()
+
+    def perform_backoff(self):
+        self.logger.info(f"Performing backoff for {self.backoff_time} seconds.")
+        time.sleep(self.backoff_time)
+        # Exponential backoff with a cap and added randomness to avoid collision
+        self.backoff_time = min(self.max_backoff_time, self.backoff_time * 2 + random.uniform(0, 1))
