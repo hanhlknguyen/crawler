@@ -170,14 +170,13 @@ def save_longest_page():
 def save_subdomain_info():
     with open('subdomains.txt', 'w') as file:
         for subdomain, urls in subdomain_pages.items():
-            if subdomain.endswith('ics.uci.edu'):
-                example_url = next(iter(urls))
-                parsed_url = urlparse(example_url)
-                scheme = parsed_url.scheme
-                netloc = parsed_url.netloc
+            example_url = next(iter(urls))
+            parsed_url = urlparse(example_url)
+            scheme = parsed_url.scheme
+            netloc = parsed_url.netloc
 
-                formatted_subdomain = f"{scheme}://{netloc}"
-                file.write(f"{formatted_subdomain}, {len(urls)}\n")
+            formatted_subdomain = f"{scheme}://{netloc}"
+            file.write(f"{formatted_subdomain}, {len(urls)}\n")
 
 
 def normalize_url(url):
