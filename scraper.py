@@ -122,9 +122,23 @@ def is_valid(url):
         print("TypeError for URL:", url)
         raise
 
+def tokenize(content):
+    tokens = []
+    current_token = ''
+    for char in content:
+        if char.isalnum():  # Include only alphanumeric characters in tokens
+            current_token += char
+        else:  # Split at non-alphanumeric characters
+            if current_token and len(current_token) > 1:  # Only add tokens longer than 1 character
+                tokens.append(current_token.lower())
+                current_token = ''  # Reset token
+    if current_token and len(current_token) > 1:  # Don't forget to add the last token if it's longer than 1 character
+        tokens.append(current_token.lower())
+    return tokens
+
 def count_words(html_content):
     """
-    Counts the number of words in the HTML content.
+    Counts the number of words in the HTML content using a custom tokenizer.
 
     Args:
         html_content (bytes): The HTML content of a page.
@@ -134,8 +148,10 @@ def count_words(html_content):
     """
     soup = BeautifulSoup(html_content, 'html.parser')
     text = soup.get_text()
-    words = re.findall(r'\b\w+\b', text.lower())
-    return len(words)
+    # Use the new tokenizer to process the extracted text
+    tokens = tokenize(text)
+    return len(tokens)
+
 
 # def count_words(html_content):
 #     """
@@ -149,11 +165,9 @@ def count_words(html_content):
 #     """
 #     soup = BeautifulSoup(html_content, 'html.parser')
 #     text = soup.get_text()
-#     # Decode HTML entities and handle special cases
-#     text = BeautifulSoup(text, features="html.parser").get_text()
-#     # Regex that handles more types of words
-#     words = re.findall(r'\b[\w\'-]+\b', text.lower())
+#     words = re.findall(r'\b\w+\b', text.lower())
 #     return len(words)
+
 
 def record_longest_page(url, word_count):
     """
