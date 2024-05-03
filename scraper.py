@@ -137,6 +137,24 @@ def count_words(html_content):
     words = re.findall(r'\b\w+\b', text.lower())
     return len(words)
 
+# def count_words(html_content):
+#     """
+#     Counts the number of words in the HTML content.
+
+#     Args:
+#         html_content (bytes): The HTML content of a page.
+
+#     Returns:
+#         int: The count of words in the content.
+#     """
+#     soup = BeautifulSoup(html_content, 'html.parser')
+#     text = soup.get_text()
+#     # Decode HTML entities and handle special cases
+#     text = BeautifulSoup(text, features="html.parser").get_text()
+#     # Regex that handles more types of words
+#     words = re.findall(r'\b[\w\'-]+\b', text.lower())
+#     return len(words)
+
 def record_longest_page(url, word_count):
     """
     Records the information about the longest page encountered.
