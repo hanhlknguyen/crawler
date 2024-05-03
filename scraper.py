@@ -218,25 +218,7 @@ def detect_trap(url):
         return True
     return False
 
-# def find_most_common_words(resp, number_of_words=50):
-    # """
-    # Processes the HTML content of a response object to find and save the most common words to a file.
 
-    # Args:
-    #     resp (Response): The response object containing the HTML content.
-    #     number_of_words (int): The number of top common words to save.
-    # """
-    # if resp.status == 200 and resp.raw_response and resp.raw_response.content:
-    #     word_counts = count_words_in_content(resp.raw_response.content)
-    #     most_common_words = word_counts.most_common(number_of_words)
-
-    #     with open('common_words.txt', 'w') as file:
-    #         file.write("Most Common Words:\n")
-    #         for word, count in most_common_words:
-    #             file.write(f"{word}: {count}\n")
-    # else:
-    #     with open('common_words.txt', 'w') as file:
-    #         file.write("Failed to retrieve or process content.")
 def find_most_common_words(html_content):
     """
     Updates the global common_words_counter with words from the HTML content.
