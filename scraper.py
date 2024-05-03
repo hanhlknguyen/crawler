@@ -53,15 +53,16 @@ def scraper(url, resp):
     if detect_similar_content(final_url, resp.raw_response.content):
         return []
     
-    word_count = count_words(resp.raw_response.content)
-    record_longest_page(final_url, word_count)
-    process_subdomain(final_url)
+    
     if resp.status == 200 and resp.raw_response and resp.raw_response.content:
+        word_count = count_words(resp.raw_response.content)
+        record_longest_page(final_url, word_count)
+        process_subdomain(final_url)
         find_most_common_words(resp.raw_response.content)
-    # find_most_common_words(resp)
 
 
     # Save the information about the longest page and subdomains
+    save_unique_pages()
     save_most_common_words()
     save_longest_page()
     save_subdomain_info()
@@ -151,7 +152,9 @@ def record_longest_page(url, word_count):
     
 def extract_subdomain(url):
     parsed = urlparse(url)
-    return parsed.netloc
+    if parsed.netloc.endswith('ics.uci.edu'):
+        return parsed.netloc
+    return None
 
 def process_subdomain(url):
     subdomain = extract_subdomain(url)
@@ -167,13 +170,14 @@ def save_longest_page():
 def save_subdomain_info():
     with open('subdomains.txt', 'w') as file:
         for subdomain, urls in subdomain_pages.items():
-            example_url = next(iter(urls))
-            parsed_url = urlparse(example_url)
-            scheme = parsed_url.scheme
-            netloc = parsed_url.netloc
+            if subdomain.endswith('ics.uci.edu'):
+                example_url = next(iter(urls))
+                parsed_url = urlparse(example_url)
+                scheme = parsed_url.scheme
+                netloc = parsed_url.netloc
 
-            formatted_subdomain = f"{scheme}://{netloc}"
-            file.write(f"{formatted_subdomain}, {len(urls)}\n")
+                formatted_subdomain = f"{scheme}://{netloc}"
+                file.write(f"{formatted_subdomain}, {len(urls)}\n")
 
 
 def normalize_url(url):
@@ -351,3 +355,8 @@ def detect_similar_content(url, html_content):
     else:
         visited_hashes.add(content_hash)
         return False
+
+
+def save_unique_pages():
+    with open('unique_pages.txt', 'w') as file:
+        file.write(f"Total Unique Pages: {len(visited_urls)}\n")
