@@ -14,7 +14,7 @@ class Worker(Thread):
         self.frontier = frontier
         self.last_request_time = {}
         self.backoff_time = 1
-        self.max_backoff_time = 30
+        self.max_backoff_time = 10
         # basic check for requests in scraper
         assert {getsource(scraper).find(req) for req in {"from requests import", "import requests"}} == {-1}, "Do not use requests in scraper.py"
         assert {getsource(scraper).find(req) for req in {"from urllib.request import", "import urllib.request"}} == {-1}, "Do not use urllib.request in scraper.py"
